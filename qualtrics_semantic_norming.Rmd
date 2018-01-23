@@ -1,0 +1,168 @@
+---
+title: "Semantic norming data processing"
+author: "Monica Thieu"
+date: "1/22/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(data.table) # Really just importing for fread() right now
+library(tidyverse)
+```
+
+## Approval for FIRST semantic norming post
+Posted Thursday, 1/18/18; first began preparing for approval Monday, 1/22/18
+
+```{r}
+# Prolific export data is being stored ON THE DESKTOP COMPUTER, NOT DROPBOX RIGHT NOW
+
+# Goals for PAYMENT:
+# Match each Prolific ID in the Prolific export to the Prolific IDs in the Qualtrics export
+# Determine the following:
+# How long people took
+# How many questions they answered
+# Record the GREATER of those two values
+# Pay $1.65/15 min or $1.65/15 questions, whichever gives the participant more money. For most people this will probably result in paying the time rate for 45 min of work.
+# Process the owed amount so it can be paid as baseline + bonus
+# Prepare outputs so they can be copied and pasted into Prolific
+
+prolific.raw = read.csv("~/Experiments/senpai/for_prolific/prolific_export_012218.csv", header = TRUE, stringsAsFactors = FALSE)
+
+qualtrics.raw = fread("~/Experiments/senpai/for_prolific/semantic_content_norming_012218.csv", header = TRUE, stringsAsFactors = FALSE, verbose = TRUE)
+
+stims1 = read.csv("selected_cowen_keltner_video_urls_926_1.csv", header = FALSE, stringsAsFactors = FALSE)
+stims2 = read.csv("selected_cowen_keltner_video_urls_926_2.csv", header = FALSE, stringsAsFactors = FALSE)
+stims = data.frame(first_half = str_sub(stims1$V1, start = 54L), second_half = str_sub(stims2$V1, start = 54L), stringsAsFactors = FALSE); rm(stims1, stims2)
+
+# Next time, change the names of the demographic questions? Whoopsies
+
+qualtrics.less.raw = qualtrics.raw %>%
+  select(-(V1:Q529), -(Q65:rand_stims_2)) %>%
+  filter(Q530 == "I agree to participate") %>%
+  rename(prolific_id = Q532,
+         age = Q533,
+         gender = Q534,
+         hisp = Q536,
+         edu = Q537,
+         attn_check = Q539,
+         dx = Q540,
+         dx_med = Q541) %>%
+  filter(prolific_id != "")
+
+names(qualtrics.less.raw)[grepl("Q535_", names(qualtrics.less.raw))] = c("race_ai",
+                                                                         "race_asian",
+                                                                         "race_pi",
+                                                                         "race_black",
+                                                                         "race_white",
+                                                                         "race_other")
+names(qualtrics.less.raw)[grepl("Q538_", names(qualtrics.less.raw))] = c("ses_1",
+                                                                         "ses_2",
+                                                                         "ses_3",
+                                                                         "ses_4",
+                                                                         "ses_5",
+                                                                         "ses_6",
+                                                                         "ses_7",
+                                                                         "ses_8",
+                                                                         "ses_9",
+                                                                         "ses_10")
+
+qualtrics.long = qualtrics.less.raw %>%
+  gather(key = "question", value = "response", ends_with(")")) %>%
+  filter(response != "") %>%
+  arrange(prolific_id) %>%
+  mutate(ses = case_when(
+    ses_1 == "On" ~ 1,
+    ses_2 == "On" ~ 2,
+    ses_3 == "On" ~ 3,
+    ses_4 == "On" ~ 4,
+    ses_5 == "On" ~ 5,
+    ses_6 == "On" ~ 6,
+    ses_7 == "On" ~ 7,
+    ses_8 == "On" ~ 8,
+    ses_9 == "On" ~ 9,
+    ses_10 == "On" ~ 10,
+    TRUE ~ NA_real_
+  )) %>%
+  select(-starts_with("ses_"), -starts_with("Location"), -V33389) %>%
+  separate(question, c("q_type", "q_gif_num"), sep = "[(]") %>%
+  mutate(q_gif_num = as.numeric(str_sub(q_gif_num, end = -2L)))
+
+qualtrics.count = qualtrics.long %>%
+  mutate(prolific_id = ifelse(prolific_id == "5a553e07e0cf3d00f01261df6", "5a553e07e0cf3d0001261df6", prolific_id)) %>%
+  group_by(prolific_id, q_type) %>%
+  summarize(n_gifs = length(response)) %>%
+  filter(q_type %in% c("setting", "prod", "scope", "camera", "fps", "caption", "setting_2", "prod_2", "scope_2", "camera_2", "fps_2", "caption_2")) %>%
+  separate(q_type, c("q_type", "round"), fill = "right") %>%
+  mutate(round = ifelse(is.na(round), "n_rd_1", "n_rd_2")) %>%
+  ungroup() %>%
+  group_by(prolific_id, round) %>%
+  summarize(n_gifs = mean(n_gifs)) %>%
+  spread(round, n_gifs) %>%
+  full_join(select(prolific.raw,
+                   participant_id,
+                   status,
+                   time_taken,
+                   entered_code),
+            by = c("prolific_id" = "participant_id")) %>%
+  arrange(status, n_rd_1) %>%
+  mutate(time_taken = time_taken / 60, # scaling to minutes, not seconds
+         n_total = n_rd_1 + ifelse(is.na(n_rd_2), 0, n_rd_2),
+         paid_baseline = case_when(
+           status == "Awaiting review" ~ 1.65,
+           !is.na(n_total) & status == "Timed-Out" ~ 1.65,
+           prolific_id == "59a0eda8ec2f75000124ee6e" ~ 1.65,
+           prolific_id == "59c6ebc95e0158000197768e" ~ 1.65,
+           
+           TRUE ~ NA_real_
+           ),
+         to_pay_bonus = case_when(
+           is.na(n_rd_1) ~ NA_real_,
+           time_taken >= 37.5 ~ 1.65 * 2,
+           !is.na(n_rd_2) ~ 1.65,
+           time_taken >= 22.5 ~ 1.65,
+           TRUE ~ NA_real_
+         ))
+
+write.csv(qualtrics.count, file = "~/Experiments/senpai/for_prolific/for_approval_012218.csv", row.names = FALSE)
+
+bonus = qualtrics.count %>%
+  filter(!is.na(to_pay_bonus)) %>%
+  select(prolific_id, to_pay_bonus)
+write.csv(bonus, file = "~/Experiments/senpai/for_prolific/bonuses_012218.csv", row.names = FALSE)
+```
+
+```{r}
+# Goals for STIM ANALYSIS:
+# Determine now if any of the stims have famous people in them
+# Remove those IMMEDIATELY
+# Decide whether such a criterion should be adopted for the videos with captions also
+famous = qualtrics.long %>%
+  filter((q_type == "famous" & response == "Yes") | (q_type == "famous_2" & response == "Yes")) %>%
+  select(q_type, q_gif_num, response) %>%
+  distinct() %>%
+  separate(q_type, c("q_type", "round"), fill = "right") %>%
+  mutate(round = as.numeric(ifelse(is.na(round), "1", round))) %>%
+  select(-q_type, -response) %>%
+  full_join(filter(select(qualtrics.long, q_type, q_gif_num, response), grepl("famous_cat", q_type) | grepl("famous_names", q_type)), by = "q_gif_num")
+
+
+
+famous = famous %>%
+  mutate(actually_famous = case_when(
+    round == 1 & q_gif_num == 100 ~ "not_famous", # "andy murphy" ???
+    TRUE ~ "famous"
+  ))
+
+
+# For the famous dataframe:
+# Most of these are correct. Some of the ones marked famous, though, don't actually have any famous people in them, by my judgment. So, to clear these:
+# Scroll through the dataframe in Viewer; anytime you see the following:
+# A video that seems to have only been marked by one user
+# A video where the name description doesn't actually have useful info in it (or the person said they didn't know), and there aren't any repeat name fields for that one that do have useful info
+# check it by going to the URL for the video and actually look at what it is
+# https://bsil.berkeley.edu/wp-content/uploads/2017/09/XXXX.mp4
+# in place of XXXX, find the video's number by indexing the stims dataframe at the correct address
+# you should record that round+gif_num combo as being not actually famous if you look and you decide most participants are not likely to know who it is
+```
+
