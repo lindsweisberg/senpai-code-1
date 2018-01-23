@@ -14,7 +14,7 @@ library(tidyverse)
 ## Approval for FIRST semantic norming post
 Posted Thursday, 1/18/18; first began preparing for approval Monday, 1/22/18
 
-```{r}
+```{r main workhorse chunk}
 # Prolific export data is being stored ON THE DESKTOP COMPUTER, NOT DROPBOX RIGHT NOW
 
 # Goals for PAYMENT:
@@ -27,13 +27,14 @@ Posted Thursday, 1/18/18; first began preparing for approval Monday, 1/22/18
 # Process the owed amount so it can be paid as baseline + bonus
 # Prepare outputs so they can be copied and pasted into Prolific
 
-prolific.raw = read.csv("~/Experiments/senpai/for_prolific/prolific_export_012218.csv", header = TRUE, stringsAsFactors = FALSE)
+# WARNING!!!: THESE PATHS CURRENTLY GO TO FILES ON MONICA'S DESKTOP COMPUTER. need to change
+prolific.raw = read.csv("../gdrive/for_prolific/prolific_export_012218.csv", header = TRUE, stringsAsFactors = FALSE)
 
-qualtrics.raw = fread("~/Experiments/senpai/for_prolific/semantic_content_norming_012218.csv", header = TRUE, stringsAsFactors = FALSE, verbose = TRUE)
+qualtrics.raw = fread("../gdrive/for_prolific/semantic_content_norming_012218.csv", header = TRUE, stringsAsFactors = FALSE, verbose = TRUE)
 
-stims1 = read.csv("selected_cowen_keltner_video_urls_926_1.csv", header = FALSE, stringsAsFactors = FALSE)
-stims2 = read.csv("selected_cowen_keltner_video_urls_926_2.csv", header = FALSE, stringsAsFactors = FALSE)
-stims = data.frame(first_half = str_sub(stims1$V1, start = 54L), second_half = str_sub(stims2$V1, start = 54L), stringsAsFactors = FALSE); rm(stims1, stims2)
+stims1 = read.csv("../gdrive/selected_cowen_keltner_video_urls_926_1.csv", header = FALSE, stringsAsFactors = FALSE)
+stims2 = read.csv("../gdrive/selected_cowen_keltner_video_urls_926_2.csv", header = FALSE, stringsAsFactors = FALSE)
+stims = data.frame(first_half = str_sub(stims1$V1, start = 54L), second_half = str_sub(stims2$V1, start = 54L), stringsAsFactors = FALSE); stims.long = c(str_sub(stims1$V1, start = 54L), str_sub(stims2$V1, start = 54L)); rm(stims1, stims2)
 
 # Next time, change the names of the demographic questions? Whoopsies
 
@@ -67,6 +68,9 @@ names(qualtrics.less.raw)[grepl("Q538_", names(qualtrics.less.raw))] = c("ses_1"
                                                                          "ses_9",
                                                                          "ses_10")
 
+# I typed this out by hand :/ oh well
+qs.rd2 = c("gif1_2", "char_2", "char_animate_2_", "animate_2_", "animal_2_", "age_yn_2", "famous_2", "injury_2", "age_2_", "famous_cat_2_", "famous_names_2", "interact_2", "social_2", "conflict_2", "gif2_2", "setting_2", "prod_2", "scope_2", "camera_2", "fps_2", "caption_2")
+
 qualtrics.long = qualtrics.less.raw %>%
   gather(key = "question", value = "response", ends_with(")")) %>%
   filter(response != "") %>%
@@ -86,7 +90,8 @@ qualtrics.long = qualtrics.less.raw %>%
   )) %>%
   select(-starts_with("ses_"), -starts_with("Location"), -V33389) %>%
   separate(question, c("q_type", "q_gif_num"), sep = "[(]") %>%
-  mutate(q_gif_num = as.numeric(str_sub(q_gif_num, end = -2L)))
+  mutate(q_gif_num = as.numeric(str_sub(q_gif_num, end = -2L)),
+         q_gif_num_long = ifelse(grepl(paste(qs.rd2, collapse = "|"), q_type), q_gif_num + nrow(stims), q_gif_num))
 
 qualtrics.count = qualtrics.long %>%
   mutate(prolific_id = ifelse(prolific_id == "5a553e07e0cf3d00f01261df6", "5a553e07e0cf3d0001261df6", prolific_id)) %>%
@@ -124,29 +129,28 @@ qualtrics.count = qualtrics.long %>%
            TRUE ~ NA_real_
          ))
 
-write.csv(qualtrics.count, file = "~/Experiments/senpai/for_prolific/for_approval_012218.csv", row.names = FALSE)
+# Commented out cause don't need to run this at present
+# write.csv(qualtrics.count, file = "../gdrive/for_prolific/for_approval_012218.csv", row.names = FALSE)
 
 bonus = qualtrics.count %>%
   filter(!is.na(to_pay_bonus)) %>%
   select(prolific_id, to_pay_bonus)
-write.csv(bonus, file = "~/Experiments/senpai/for_prolific/bonuses_012218.csv", row.names = FALSE)
+# same with this; only needed to export once
+# write.csv(bonus, file = "~/Experiments/senpai/for_prolific/bonuses_012218.csv", row.names = FALSE)
 ```
 
-```{r}
+```{r famous checking}
 # Goals for STIM ANALYSIS:
 # Determine now if any of the stims have famous people in them
 # Remove those IMMEDIATELY
 # Decide whether such a criterion should be adopted for the videos with captions also
 famous = qualtrics.long %>%
   filter((q_type == "famous" & response == "Yes") | (q_type == "famous_2" & response == "Yes")) %>%
-  select(q_type, q_gif_num, response) %>%
+  select(q_gif_num_long) %>%
   distinct() %>%
-  separate(q_type, c("q_type", "round"), fill = "right") %>%
-  mutate(round = as.numeric(ifelse(is.na(round), "1", round))) %>%
-  select(-q_type, -response) %>%
-  full_join(filter(select(qualtrics.long, q_type, q_gif_num, response), grepl("famous_cat", q_type) | grepl("famous_names", q_type)), by = "q_gif_num")
+  full_join(filter(select(qualtrics.long, q_type, q_gif_num_long, response), grepl("famous_cat", q_type) | grepl("famous_names", q_type)), by = "q_gif_num_long")
 
-
+# Use the stims.long variable to look up long-coded gif filenames
 
 famous = famous %>%
   mutate(actually_famous = case_when(
