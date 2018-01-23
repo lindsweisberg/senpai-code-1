@@ -161,12 +161,12 @@ famous = famous %>%
 
 # For the famous dataframe:
 # Most of these are correct. Some of the ones marked famous, though, don't actually have any famous people in them, by my judgment. So, to clear these:
-# Scroll through the dataframe in Viewer; anytime you see the following:
+# Scroll through the dataframe in Viewer or however you please; anytime you see the following:
 # A video that seems to have only been marked by one user
 # A video where the name description doesn't actually have useful info in it (or the person said they didn't know), and there aren't any repeat name fields for that one that do have useful info
 # check it by going to the URL for the video and actually look at what it is
 # https://bsil.berkeley.edu/wp-content/uploads/2017/09/XXXX.mp4
-# in place of XXXX, find the video's number by indexing the stims dataframe at the correct address
+# in place of XXXX, find the video's number by indexing the stims.long vector at the correct address
 # you should record that round+gif_num combo as being not actually famous if you look and you decide most participants are not likely to know who it is
 ```
 
