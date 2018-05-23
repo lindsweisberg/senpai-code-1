@@ -1,0 +1,111 @@
+---
+title: "Senpai data"
+author: "Lindsay"
+date: "May 22, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+
+```
+
+
+
+
+```{r}
+students <- read_csv("qualtrics.csv")
+qual.par <-read_csv("rds12_qualtrics.csv")
+qual.par
+students
+
+```
+```{r}
+students$group <- "Students"
+qual.par$group <-"Online participants"
+names(students)
+names(qual.par)
+head(students$subj_num)
+head(qual.par$subj_num)
+```
+
+```{r}
+masterdata <- bind_rows(students, qual.par)
+masterdata
+gendergrid <- ggplot(data=masterdata, aes(x=gender)) + geom_bar() + facet_wrap(~group)
+gendergrid
+```
+```{r}
+sesgrid <- ggplot(data=masterdata, aes(x=factor(ses))) + geom_bar() + facet_wrap(~group) 
+sesgrid + xlab("SES ladder 1-10")
+```
+
+```{r}
+dfonline <-as.data.frame.matrix(table(qual.par$age, qual.par$gender))
+dfstudents <- as.data.frame.matrix(table(students$age, students$gender))
+dfonline$age <- row.names(dfonline)
+dfonline_f <- dfonline[, c("age", "Female")]
+dfonline_m <- dfonline[, c("age", "Male")]
+
+library(forcats)
+dfonline_f$gender <- "Female"
+dfonline_f$gender <- factor(dfonline_f$gender)
+dfonline_f$gender <- fct_expand(dfonline_f$gender, "Male")
+
+dfonline_m$gender <- "Male"
+dfonline_m$gender <- factor(dfonline_m$gender)
+dfonline_m$gender <- fct_expand(dfonline_m$gender, "Female")
+```
+```{r}
+age_gender <- ggplot() + 
+  geom_bar(data= dfonline_m, aes(x=age, y=Male, fill= gender), position="stack", stat="identity") + 
+  geom_bar(data= dfonline_f, aes(x=age, y=Female * -1, fill=gender), position="stack", stat="identity") +
+  coord_flip() 
+  
+age_gender + scale_y_continuous(breaks= c(-5, 0, 5, 10, 15), labels=c("5", "0", "5", "10", "15")) +
+  xlab("Age") + ylab("Count") + ggtitle("Age of online participants") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+```{r}
+dfstudents$age <- row.names(dfstudents)
+dfstudents_f <- dfstudents[, c("age", "Female")]
+dfstudents_m <- dfstudents[, c("age", "Male")]
+
+
+dfstudents_f$gender <- "Female"
+dfstudents_f$gender <- factor(dfstudents_f$gender)
+dfstudents_f$gender <- fct_expand(dfstudents_f$gender, "Male")
+
+dfstudents_m$gender <- "Male"
+dfstudents_m$gender <- factor(dfstudents_m$gender)
+dfstudents_m$gender <- fct_expand(dfstudents_m$gender, "Female")
+
+```
+```{r}
+age_gender2 <- ggplot() + 
+  geom_bar(data= dfstudents_m, aes(x=age, y=Male, fill= gender), position="stack", stat="identity") + 
+  geom_bar(data= dfstudents_f, aes(x=age, y=Female * -1, fill=gender), position="stack", stat="identity") +
+  coord_flip() 
+
+age_gender2 + scale_y_continuous(breaks= c(-5, 0, 5), labels=c("5", "0", "5")) +
+  xlab("Age") + ylab("Count") + ggtitle("Age of students participants") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+```{r}
+masterdata$race_summary <- factor(masterdata$race_summary)
+library(forcats)
+masterdata$race_summary <- fct_recode(masterdata$race_summary, `Mixed race`= "More than one race", `Not listed`= "A race not listed above")
+levels(masterdata$race_summary)
+
+race_summarygrid <- ggplot(data=masterdata, aes(x=race_summary)) + geom_bar() + facet_wrap(~group) 
+race_summarygrid + xlab("Race") +
+  coord_flip()
+```
+
