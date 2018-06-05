@@ -1,0 +1,70 @@
+---
+title: "Comparing Emotional Data"
+author: "Lindsay"
+date: "6/4/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(ggplot2)
+library(readr)
+library(dplyr)
+```
+
+
+```{r}
+
+setwd("~/Documents/thieu")
+students <- read_csv("qualtrics.csv")
+qual.par <-read_csv("rds12_qualtrics.csv")
+qual.par
+nrow(students)
+nrow(qual.par)
+
+
+students$group <- "Students"
+qual.par$group <-"Online participants"
+```
+
+```{r}
+masterdata <- bind_rows(students, qual.par)
+masterdata
+```
+DERS plot
+```{r}
+DERShist <- ggplot(data=masterdata, aes(x=ders_total, fill=group)) + 
+                     geom_histogram() + facet_wrap(~group, scales = "free_y") +
+  xlab("Difficulties in Emotion Regulation (DERS)") 
+  
+DERShist
+```
+ 
+ PANAS negative affect
+```{r}
+PANASneghist <- ggplot(data=masterdata, aes(x=i_panas_sf_neg, fill=group)) + 
+                     geom_histogram() + facet_wrap(~group, scales = "free_y") +
+  xlab("Negative affect from Positive and Negative Affect Schedule (PANAS)") 
+PANASneghist
+```
+ 
+ PANAS positive affect
+```{r}
+PANASposhist <- ggplot(data=masterdata, aes(x=tas20_total, fill=group)) + 
+                     geom_histogram() + facet_wrap(~group, scales = "free_y") +
+  xlab("Toronto Alexi (TAS)") 
+PANASposhist
+```
+ 
+ 
+ TAS
+```{r}
+TAShist <- ggplot(data=masterdata, aes(x=tas20_total, fill=group)) + 
+                     geom_histogram() + facet_wrap(~group, scales = "free_y") +
+  xlab("Toronto Alexithymia Scale (TAS)") 
+TAShist
+```
+
+ 
