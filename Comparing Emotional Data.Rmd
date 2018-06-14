@@ -1,0 +1,130 @@
+---
+title: "Comparing Emotional Data"
+author: "Lindsay"
+date: "6/13/2018"
+output:
+  html_document:
+    toc: true
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading required packages
+```{r}
+library(ggplot2)
+library(readr)
+library(dplyr)
+```
+
+# Loading data
+```{r}
+
+setwd("~/Documents/thieu")
+students <- read_csv("qualtrics.csv")
+qual.par <-read_csv("rds12_qualtrics.csv")
+qual.par
+nrow(students)
+nrow(qual.par)
+
+
+students$group <- "Students"
+qual.par$group <-"Online participants"
+```
+
+```{r}
+masterdata <- bind_rows(students, qual.par)
+masterdata
+masterdata$gender <- ifelse(is.na(masterdata$gender), "Not reported", masterdata$gender)
+```
+## DERS 
+```{r}
+masterdatafiltered <- masterdata %>% filter(gender %in% c("Male", "Female"))
+
+DERShist <- ggplot(data=masterdatafiltered, aes(x=ders_total, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Difficulties in Emotion Regulation (DERS)") +
+geom_vline(xintercept=mean(masterdatafiltered$ders_total), linetype = "dashed") 
+  
+DERShist
+```
+ Dashed line is mean value 
+ 
+ 
+```{r}
+DERSsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(ders_total), mean = mean(ders_total), sd=sd(ders_total), n=n(), missing= sum(is.na(ders_total)))
+
+DERSsummary
+
+
+```
+ 
+ 
+ 
+ 
+ 
+## PANAS negative affect
+```{r}
+PANASneghist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_neg, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Negative affect from Positive and Negative Affect Schedule (PANAS)") + geom_vline(xintercept=mean(masterdatafiltered$i_panas_sf_neg, na.rm = TRUE), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+PANASneghist
+```
+ Dashed line is mean value 
+
+
+```{r}
+PANASnegsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(i_panas_sf_neg, na.rm=TRUE), mean = mean(i_panas_sf_neg, na.rm=TRUE), sd=sd(i_panas_sf_neg, na.rm = TRUE), n=n(), missing= sum(is.na(i_panas_sf_neg)))
+PANASnegsummary
+```
+
+
+ 
+## PANAS positive affect
+```{r}
+PANASposhist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_pos, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Positive affect from Positive and Negative Affect Schedule (PANAS)") + geom_vline(xintercept=mean(masterdatafiltered$i_panas_sf_pos, na.rm = TRUE), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+PANASposhist
+```
+ Dashed line is mean value
+ 
+```{r}
+PANASpossummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(i_panas_sf_pos, na.rm=TRUE), mean = mean(i_panas_sf_pos, na.rm=TRUE), sd=sd(i_panas_sf_pos, na.rm = TRUE), n=n(), missing= sum(is.na(i_panas_sf_pos)))
+PANASpossummary
+```
+ 
+ 
+ 
+ 
+
+## TAS
+```{r}
+TAShist <- ggplot(data=masterdatafiltered, aes(x=tas20_total, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Toronto Alexithymia Scale (TAS)") +  geom_vline(xintercept=mean(masterdatafiltered$tas20_total, na.rm = TRUE), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+TAShist
+```
+Dashed line is mean value
+
+```{r}
+TASsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(tas20_total, na.rm=TRUE), mean = mean(tas20_total, na.rm=TRUE), sd=sd(tas20_total, na.rm = TRUE), n=n(), missing= sum(is.na(tas20_total)))
+TASsummary
+```
+
+## BPQ
+```{r}
+BPQhist <- ggplot(data=masterdatafiltered, aes(x=bpq_total, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Borderline Personality Questionnaire (BPQ)") +  geom_vline(xintercept=mean(masterdatafiltered$bpq_total, na.rm = TRUE), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+BPQhist
+```
+Dashed line is mean value
+
+```{r}
+BPQsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(bpq_total, na.rm=TRUE), mean = mean(bpq_total, na.rm=TRUE), sd=sd(bpq_total, na.rm = TRUE), n=n(), missing= sum(is.na(bpq_total)))
+BPQsummary
+```
+
