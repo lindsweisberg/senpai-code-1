@@ -1,0 +1,251 @@
+---
+title: "Scaling Emotional Data"
+author: "Lindsay"
+date: "6/19/2018"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2 
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading required packages
+```{r}
+library(ggplot2)
+library(readr)
+library(dplyr)
+```
+
+# Loading data
+```{r}
+
+setwd("~/Documents/thieu")
+students <- read_csv("qualtrics.csv")
+qual.par <-read_csv("rds12_qualtrics.csv")
+qual.par
+nrow(students)
+nrow(qual.par)
+
+
+students$group <- "Students"
+qual.par$group <-"Online participants"
+```
+
+```{r}
+masterdata <- bind_rows(students, qual.par)
+masterdata
+masterdata$gender <- ifelse(is.na(masterdata$gender), "Not reported", masterdata$gender)
+names(masterdata)
+
+#DERS transformation
+masterdata <- masterdata %>% mutate(ders_total_c=scale(ders_total, scale = FALSE), ders_total_z=scale(ders_total)) %>% group_by(group, gender) %>% mutate(ders_total_cbylevel=scale(ders_total, scale = FALSE), ders_total_zbylevel=scale(ders_total))
+
+#PANAS negative affect transformation
+masterdata <- masterdata %>% mutate(i_panas_sf_neg_c=scale(i_panas_sf_neg, scale = FALSE), i_panas_sf_neg_z=scale(i_panas_sf_neg)) %>% group_by(group, gender) %>% mutate(i_panas_sf_neg_cbylevel=scale(i_panas_sf_neg, scale = FALSE), i_panas_sf_neg_zbylevel=scale(i_panas_sf_neg))
+
+#PANAS positive affect transformation
+masterdata <- masterdata %>% mutate(i_panas_sf_pos_c=scale(i_panas_sf_pos, scale = FALSE), i_panas_sf_pos_z=scale(i_panas_sf_pos)) %>% group_by(group, gender) %>% mutate(i_panas_sf_pos_cbylevel=scale(i_panas_sf_pos, scale = FALSE), i_panas_sf_pos_zbylevel=scale(i_panas_sf_pos))
+
+#TAS transformation
+masterdata <- masterdata %>% mutate(tas20_total_c=scale(tas20_total, scale = FALSE), tas20_total_z=scale(tas20_total)) %>% group_by(group, gender) %>% mutate(tas20_total_cbylevel=scale(tas20_total, scale = FALSE), tas20_total_zbylevel=scale(tas20_total))
+
+#BPQ transformation
+masterdata <- masterdata %>% mutate(bpq_total_c=scale(bpq_total, scale = FALSE), bpq_total_z=scale(bpq_total)) %>% group_by(group, gender) %>% mutate(bpq_total_cbylevel=scale(bpq_total, scale = FALSE), bpq_total_zbylevel=scale(bpq_total))
+
+```
+
+
+## DERS 
+```{r}
+masterdatafiltered <- masterdata %>% filter(gender %in% c("Male", "Female"))
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(ders_total))
+
+DERShist <- ggplot(data=masterdatafiltered, aes(x=ders_total, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Difficulties in Emotion Regulation (DERS)") +
+geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") 
+  
+DERShist 
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(ders_total_c))
+
+DERShist<- ggplot(data=masterdatafiltered, aes(x=ders_total_c, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Difficulties in Emotion Regulation (DERS) Centered") +
+geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") 
+
+DERShist 
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(ders_total_z))
+
+DERShist<- ggplot(data=masterdatafiltered, aes(x=ders_total_z, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Difficulties in Emotion Regulation (DERS) Z-Score") +
+geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") 
+
+DERShist 
+```
+ Dashed line is mean value 
+ 
+ 
+```{r}
+DERSsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(ders_total), mean = mean(ders_total), sd=sd(ders_total), n=n(), missing= sum(is.na(ders_total)))
+
+DERSsummary
+
+
+```
+ 
+ 
+ 
+ 
+ 
+## PANAS negative affect
+```{r}
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(i_panas_sf_neg, na.rm=TRUE))
+
+PANASneghist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_neg, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Negative affect from Positive and Negative Affect Schedule (PANAS)") + geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed")  + theme(axis.title.x = element_text(hjust = 0))
+PANASneghist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(i_panas_sf_neg_c, na.rm=TRUE))
+
+PANASneghist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_neg_c, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Negative PANAS Centered") + geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed")  + theme(axis.title.x = element_text(hjust = 0))
+PANASneghist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(i_panas_sf_neg_z, na.rm=TRUE))
+
+
+PANASneghist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_neg_z, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Negative PANAS Z-Score") + geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed")  + theme(axis.title.x = element_text(hjust = 0))
+PANASneghist
+```
+ Dashed line is mean value 
+
+
+```{r}
+PANASnegsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(i_panas_sf_neg, na.rm=TRUE), mean = mean(i_panas_sf_neg, na.rm=TRUE), sd=sd(i_panas_sf_neg, na.rm = TRUE), n=n(), missing= sum(is.na(i_panas_sf_neg)))
+PANASnegsummary
+```
+
+
+ 
+## PANAS positive affect
+```{r}
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(i_panas_sf_pos, na.rm=TRUE))
+
+PANASposhist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_pos, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Positive affect from Positive and Negative Affect Schedule (PANAS)") + geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed")  + theme(axis.title.x = element_text(hjust = 0))
+PANASposhist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(i_panas_sf_pos_c, na.rm=TRUE))
+
+PANASposhist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_pos_c, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Positive PANAS Centered") + geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed")  + theme(axis.title.x = element_text(hjust = 0))
+PANASposhist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(i_panas_sf_pos_z, na.rm=TRUE))
+
+PANASposhist <- ggplot(data=masterdatafiltered, aes(x=i_panas_sf_pos_z, fill=group)) + 
+                     geom_histogram(bins=20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Positive PANAS Z-Score") + geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed")  + theme(axis.title.x = element_text(hjust = 0))
+PANASposhist
+```
+ Dashed line is mean value
+ 
+```{r}
+PANASpossummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(i_panas_sf_pos, na.rm=TRUE), mean = mean(i_panas_sf_pos, na.rm=TRUE), sd=sd(i_panas_sf_pos, na.rm = TRUE), n=n(), missing= sum(is.na(i_panas_sf_pos)))
+PANASpossummary
+```
+ 
+ 
+ 
+ 
+
+## TAS
+```{r}
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(tas20_total, na.rm=TRUE))
+
+TAShist <- ggplot(data=masterdatafiltered, aes(x=tas20_total, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Toronto Alexithymia Scale (TAS)") +  geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+TAShist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(tas20_total_c, na.rm=TRUE))
+
+TAShist <- ggplot(data=masterdatafiltered, aes(x=tas20_total_c, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Toronto Alexithymia Scale (TAS) Centered") +  geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+TAShist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(tas20_total_z, na.rm=TRUE))
+
+TAShist <- ggplot(data=masterdatafiltered, aes(x=tas20_total_z, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Toronto Alexithymia Scale (TAS) Z-Score") +  geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+TAShist
+```
+Dashed line is mean value
+
+```{r}
+TASsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(tas20_total, na.rm=TRUE), mean = mean(tas20_total, na.rm=TRUE), sd=sd(tas20_total, na.rm = TRUE), n=n(), missing= sum(is.na(tas20_total)))
+TASsummary
+```
+
+## BPQ
+```{r}
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(bpq_total, na.rm=TRUE))
+
+BPQhist <- ggplot(data=masterdatafiltered, aes(x=bpq_total, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Borderline Personality Questionnaire (BPQ)") +  geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+BPQhist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(bpq_total_c, na.rm=TRUE))
+
+BPQhist <- ggplot(data=masterdatafiltered, aes(x=bpq_total_c, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Borderline Personality Questionnaire (BPQ) Centered") +  geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+BPQhist
+
+vline <-masterdatafiltered %>% group_by(group, gender) %>% 
+  summarise(meanval=mean(bpq_total_z, na.rm=TRUE))
+
+BPQhist <- ggplot(data=masterdatafiltered, aes(x=bpq_total_z, fill=group)) + 
+                     geom_histogram(bins = 20) + facet_wrap(~group + gender, scales = "free_y") +
+  xlab("Borderline Personality Questionnaire (BPQ) Z-Score") +  geom_vline(data=vline, aes(xintercept=meanval), linetype = "dashed") + theme(axis.title.x = element_text(hjust = 0))
+BPQhist
+
+```
+Dashed line is mean value
+
+```{r}
+BPQsummary <- masterdata %>% group_by(group, gender) %>% summarise(median= median(bpq_total, na.rm=TRUE), mean = mean(bpq_total, na.rm=TRUE), sd=sd(bpq_total, na.rm = TRUE), n=n(), missing= sum(is.na(bpq_total)))
+BPQsummary
+```
+
