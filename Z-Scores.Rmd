@@ -1,0 +1,48 @@
+---
+title: "Z-scores"
+author: "Lindsay"
+date: "6/25/2018"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Loading data and packages
+```{r}
+data <- readRDS("masterdata.rds")
+```
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+#Reshaping data from wide to long
+```{r}
+datalong <- data %>% select(gender, group, ders_total_z, i_panas_sf_neg_z, i_panas_sf_pos_z, tas20_total_z, bpq_total_z) %>% ungroup() %>% 
+tidyr::gather(key="variable", value="value", 3:7)
+datalong
+```
+#Renaming labels
+```{r}
+library(forcats)
+datalong$label <- factor(datalong$variable)
+levels(datalong$label)
+```
+```{r}
+datalong$label <-fct_recode(datalong$label, "BPQ"="bpq_total_z", "DERS"="ders_total_z", "PANAS NEG"="i_panas_sf_neg_z", "PANAS POS"="i_panas_sf_pos_z", "TAS"="tas20_total_z")
+```
+
+
+
+#Plot
+```{r}
+
+plot <- ggplot(subset(datalong, gender !="Not reported"), aes(x=label, y=value, fill=label)) + geom_boxplot() + facet_wrap(~group + gender) + coord_flip() 
+plot
+```
+
