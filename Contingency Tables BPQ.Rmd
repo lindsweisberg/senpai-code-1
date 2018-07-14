@@ -1,0 +1,152 @@
+---
+title: "Contingency Tables"
+author: "Lindsay"
+date: "7/14/2018"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2 
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Loading required packages
+```{r}
+library(ggplot2)
+library(readr)
+library(dplyr)
+```
+
+# Loading data
+```{r}
+
+setwd("~/Documents/thieu")
+students <- read_csv("qualtrics.csv")
+qual.par <-read_csv("rds12_qualtrics.csv")
+qual.par
+nrow(students)
+nrow(qual.par)
+
+
+students$group <- "Students"
+qual.par$group <-"Online participants"
+```
+
+```{r}
+masterdata <- bind_rows(students, qual.par)
+masterdata
+masterdata$gender <- ifelse(is.na(masterdata$gender), "Not reported", masterdata$gender)
+names(masterdata)
+
+#DERS transformation
+masterdata <- masterdata %>% mutate(ders_total_c=scale(ders_total, scale = FALSE), ders_total_z=scale(ders_total)) %>% group_by(group, gender) %>% mutate(ders_total_cbylevel=scale(ders_total, scale = FALSE), ders_total_zbylevel=scale(ders_total))
+
+#PANAS negative affect transformation
+masterdata <- masterdata %>% mutate(i_panas_sf_neg_c=scale(i_panas_sf_neg, scale = FALSE), i_panas_sf_neg_z=scale(i_panas_sf_neg)) %>% group_by(group, gender) %>% mutate(i_panas_sf_neg_cbylevel=scale(i_panas_sf_neg, scale = FALSE), i_panas_sf_neg_zbylevel=scale(i_panas_sf_neg))
+
+#PANAS positive affect transformation
+masterdata <- masterdata %>% mutate(i_panas_sf_pos_c=scale(i_panas_sf_pos, scale = FALSE), i_panas_sf_pos_z=scale(i_panas_sf_pos)) %>% group_by(group, gender) %>% mutate(i_panas_sf_pos_cbylevel=scale(i_panas_sf_pos, scale = FALSE), i_panas_sf_pos_zbylevel=scale(i_panas_sf_pos))
+
+#TAS transformation
+masterdata <- masterdata %>% mutate(tas20_total_c=scale(tas20_total, scale = FALSE), tas20_total_z=scale(tas20_total)) %>% group_by(group, gender) %>% mutate(tas20_total_cbylevel=scale(tas20_total, scale = FALSE), tas20_total_zbylevel=scale(tas20_total))
+
+#BPQ transformation
+masterdata <- masterdata %>% mutate(bpq_total_c=scale(bpq_total, scale = FALSE), bpq_total_z=scale(bpq_total)) %>% group_by(group, gender) %>% mutate(bpq_total_cbylevel=scale(bpq_total, scale = FALSE), bpq_total_zbylevel=scale(bpq_total))
+
+```
+
+
+```{r}
+
+filterdata <- masterdata %>% filter(gender!="Not reported")
+```
+
+#Age and gender table
+```{r}
+filterdata$race_summary2 <- ifelse(filterdata$race_summary== "White", "White", "Not White")
+table(filterdata$gender, filterdata$race_summary2)
+```
+```{r}
+ctmodel1 <- xtabs(~gender + race_summary2, data=filterdata)
+ftable(ctmodel1)
+summary(ctmodel1)
+```
+
+#BPQ histogram
+```{r}
+ggplot(data=filterdata) + geom_histogram(aes(x=bpq_total))
+```
+
+#Gender and BPQ 
+```{r}
+filterdata <- filterdata %>% mutate(bpqcat= cut(bpq_total, breaks = c(-Inf, 40, Inf), labels = c("low", "high")))
+table(filterdata$gender, filterdata$bpqcat)
+```
+```{r}
+ctmodel2 <- xtabs(~gender + bpqcat, data=filterdata)
+ftable(ctmodel2)
+summary(ctmodel2)
+```
+
+
+#Gender and BPQ subscales
+##Impulsivity
+```{r}
+ggplot(data=filterdata) + geom_histogram(aes(x=bpq_impulsivity))
+filterdata <- filterdata %>% mutate(bpqsubscaleimp= cut(bpq_impulsivity, breaks = c(-Inf, 3, Inf), labels = c("low", "high")))
+subscalemodel1 <- xtabs(~gender + bpqsubscaleimp, data=filterdata)
+ftable(subscalemodel1)
+summary(subscalemodel1)
+
+
+```
+
+##Relationships
+```{r}
+ggplot(data=filterdata) + geom_histogram(aes(x=bpq_relationships))
+filterdata <- filterdata %>% mutate(bpqsubscalerel= cut(bpq_relationships, breaks = c(-Inf, 3, Inf), labels = c("low", "high")))
+subscalemodel2 <- xtabs(~gender + bpqsubscalerel, data=filterdata)
+ftable(subscalemodel2)
+summary(subscalemodel2)
+```
+##Affective Instability
+```{r}
+ggplot(data=filterdata) + geom_histogram(aes(x=bpq_affective_instability))
+filterdata <- filterdata %>% mutate(bpqsubscaleaffect= cut(bpq_affective_instability, breaks = c(-Inf, 5, Inf), labels = c("low", "high")))
+subscalemodel3 <- xtabs(~gender + bpqsubscaleaffect, data=filterdata)
+ftable(subscalemodel3)
+summary(subscalemodel3)
+```
+
+
+
+#Other variables with BPQ
+##Race with BPQ
+```{r}
+ctmodel3 <- xtabs(~race_summary2 + bpqcat, data=filterdata)
+ftable(ctmodel3)
+summary(ctmodel3)
+```
+
+```{r}
+summary(filterdata$age)
+```
+
+```{r}
+filterdata <- filterdata %>% mutate(agenew= cut(age, breaks = c(-Inf, 25, Inf), labels = c("below 25", "over 25")))
+table(filterdata$agenew, filterdata$bpqcat)
+```
+##Age and BPQ
+```{r}
+ctmodel5 <- xtabs(~agenew + bpqcat, data=filterdata)
+ftable(ctmodel5)
+summary(ctmodel5)
+```
+
+
+ 
+ 
+ 
